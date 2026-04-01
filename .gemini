@@ -1,0 +1,27 @@
+# Table Tennis Tactics AI Context
+
+## 專案目標
+預測桌球比賽中的下一拍：
+1. `actionId` (球種 - 19類)
+2. `pointId` (落點 - 10類)
+3. `serverGetPoint` (該回合勝負 - 二元分類)
+
+## 核心架構
+- **模型**: Multi-Task Transformer Encoder + MLP Heads.
+- **輸入**: 前 $n$ 拍的類別與數值特徵 (序列長度 $15$, $d_{model}=64$).
+- **特徵工程**: 
+    - `striker_id`: 判斷當前是誰擊球。
+    - `is_server`: 區分發球方/接發球方。
+    - `phase_id`: 將比賽分為前、中、後段。
+- **預處理**: 
+    - `LabelEncoder` 處理類別特徵，並額外預留 `vocab_size` 作為專用 Padding Index。
+    - `StandardScaler` 處理數值特徵。
+
+## 目前進度
+- [x] 建立 Padding Mask 機制，避免預測偏誤。
+- [x] 加入擊球者身分特徵，AUC 提升至 0.62。
+- [x] 實作多任務權重損失函數 (4:4:2)。
+
+## 常用指令
+- 訓練：`python main.py --train_csv train.csv --epochs 50 --batch_size 64`
+- 環境：`conda activate ttt-transformer`

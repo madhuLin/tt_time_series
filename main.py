@@ -38,19 +38,26 @@ def main(args):
     train_df_encoded = preprocessor.transform(train_df)
     valid_df_encoded = preprocessor.transform(valid_df)
     
+    # 數值特徵縮放
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    train_df_encoded[Config.NUM_FEATURES] = scaler.fit_transform(train_df_encoded[Config.NUM_FEATURES])
+    valid_df_encoded[Config.NUM_FEATURES] = scaler.transform(valid_df_encoded[Config.NUM_FEATURES])
+    
     # 4. 生成序列樣本
     print("Creating prefix sequences...")
     train_samples = create_sequences(train_df_encoded, args.max_seq_len)
     valid_samples = create_sequences(valid_df_encoded, args.max_seq_len)
     
-    train_ds = TableTennisDataset(train_samples, Config.CAT_FEATURES, Config.NUM_FEATURES, args.max_seq_len)
-    valid_ds = TableTennisDataset(valid_samples, Config.CAT_FEATURES, Config.NUM_FEATURES, args.max_seq_len)
+    vocab_sizes = preprocessor.get_vocab_sizes()
+    
+    train_ds = TableTennisDataset(train_samples, Config.CAT_FEATURES, Config.NUM_FEATURES, args.max_seq_len, vocab_sizes)
+    valid_ds = TableTennisDataset(valid_samples, Config.CAT_FEATURES, Config.NUM_FEATURES, args.max_seq_len, vocab_sizes)
     
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=2)
     valid_loader = DataLoader(valid_ds, batch_size=args.batch_size, num_workers=2)
     
     # 5. 模型初始化
-    vocab_sizes = preprocessor.get_vocab_sizes()
     # 動態更新類別數
     Config.NUM_ACTION_CLASSES = vocab_sizes['actionId']
     Config.NUM_POINT_CLASSES = vocab_sizes['pointId']

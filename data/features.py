@@ -11,6 +11,11 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     df['is_close_score'] = (df['scoreDiff'].abs() <= 2).astype(int)
     df['is_third_stroke'] = (df['strikeNumber'] == 3).astype(int)
     
+    # 判斷當前擊球者
+    # strikeNumber 為奇數: server (gamePlayerId), 偶數: receiver (gamePlayerOtherId)
+    df['striker_id'] = np.where(df['strikeNumber'] % 2 == 1, df['gamePlayerId'], df['gamePlayerOtherId'])
+    df['is_server'] = (df['strikeNumber'] % 2 == 1).astype(int)
+
     # phase_id 分段
     def get_phase(n):
         if n == 1: return 1 # serve
