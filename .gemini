@@ -18,9 +18,11 @@
 
 ## 目前進度
 - [x] 建立 Padding Mask 機制，修復 0-index 污染問題。
-- [x] **實作任務解耦與馬可夫特徵 (v1.5)**，Overall 突破至 **0.45**。
-- [x] **Point F1** 顯著提升至 **0.27** (提升 ~50%)。
-- [x] **Outcome AUC** 達到 **0.98** 的新高點。
+- [x] 實驗 MAX_SEQ_LEN長度，不須太長設定 8， AUC 提升至 0.6233。
+- [x] 實驗 D_MODEL 64 就好太深分數下降。
+- [x] 實驗 out come pooling 分數不會下降
+- [x] 檢查 test.csv 分布移除一些訓練特徵
+
 
 ## 常用指令
 - 訓練：`python main.py --batch_size 256`
