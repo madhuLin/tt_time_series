@@ -7,7 +7,6 @@ from .heads import MultiTaskHeads
 class TTMultiTaskModel(nn.Module):
     def __init__(self, config, vocab_sizes):
         super().__init__()
-        self.pooling_type = getattr(config, 'POOLING_TYPE', 'concat')
         d_model = config.D_MODEL
         d_small = d_model // 4  # 這裡定義 small 的維度
         
@@ -25,13 +24,14 @@ class TTMultiTaskModel(nn.Module):
         self.small_projection = nn.Linear(d_model, d_small)
         
         # 不同的 Head 輸入維度
-        # Action/Point: concat(x_last, x_outcome_small) -> d_model + d_small
-        # Outcome: concat(x_last, x_mean) -> d_model * 2
+        # action_in_dim, point_in_dim, outcome_in_dim, hidden_dim, num_action_classes, num_point_classes
         self.heads = MultiTaskHeads(
+            d_model, 
             d_model + d_small, 
-            config.NUM_ACTION_CLASSES, 
-            config.NUM_POINT_CLASSES,
-            outcome_in_dim=d_model * 2 if self.pooling_type == 'concat' else d_model
+            d_model * 2,
+            hidden_dim=d_model,
+            num_action_classes=config.NUM_ACTION_CLASSES,
+            num_point_classes=config.NUM_POINT_CLASSES
         )
 
     def forward(self, cat_feats, num_feats, padding_mask):
@@ -46,14 +46,13 @@ class TTMultiTaskModel(nn.Module):
         mask = (~padding_mask).float().unsqueeze(-1)
         mean_hidden = (output * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
         
-        # 3. 生成 x_outcome_small (投影後的平均特徵)
-        x_outcome_small = self.small_projection(mean_hidden)
+        # 3. Action/Point: x_outcome_small = projection(x_mean), x_action/point = concat(x_last, x_outcome_small)
+        x_action = last_hidden
         
-        # 4. 依照需求拼接
-        # Action/Point: concat(x_last, x_outcome_small)
-        x_action_point = torch.cat([last_hidden, x_outcome_small], dim=-1)
+        # 這裡將 mean_hidden 投影到較小維度，然後與 last_hidden concat
+        x_point = torch.cat([last_hidden, self.small_projection(mean_hidden)], dim=-1)
         
         # Outcome: x_outcome (concat(x_last, x_mean))
         x_outcome = torch.cat([last_hidden, mean_hidden], dim=-1)
             
-        return self.heads(x_action_point, x_outcome)
+        return self.heads(x_action, x_point, x_outcome)

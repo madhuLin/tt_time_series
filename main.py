@@ -13,6 +13,10 @@ from train.losses import MultiTaskLoss, compute_class_weights
 from train.trainer import Trainer
 from utils.common import seed_everything
 
+from sklearn.model_selection import GroupShuffleSplit
+from sklearn.preprocessing import StandardScaler
+
+
 def main(args):
     seed_everything(Config.SEED)
     
@@ -25,12 +29,29 @@ def main(args):
     df = pd.read_csv(args.train_csv)
     df = engineer_features(df)
     
-    # 2. 資料切割 (Group Split by Match)
-    matches = df['match'].unique()
-    train_matches = matches[:int(len(matches) * (1 - args.valid_ratio))]
-    train_df = df[df['match'].isin(train_matches)].reset_index(drop=True)
-    valid_df = df[~df['match'].isin(train_matches)].reset_index(drop=True)
+    # 2. 資料切割 (Group Split by Match, shuffled)
+    gss = GroupShuffleSplit(
+        n_splits=1,
+        test_size=args.valid_ratio,
+        random_state=Config.SEED
+    )
+    train_idx, valid_idx = next(gss.split(df, groups=df['match']))
+
+    train_df = df.iloc[train_idx].reset_index(drop=True)
+    valid_df = df.iloc[valid_idx].reset_index(drop=True)
     
+    print("Train matches:", train_df['match'].nunique())
+    print("Valid matches:", valid_df['match'].nunique())
+    print("Train rows:", len(train_df))
+    print("Valid rows:", len(valid_df))
+    print(train_df['actionId'].value_counts(normalize=True).sort_index())
+    print(valid_df['actionId'].value_counts(normalize=True).sort_index())
+
+    print(train_df['pointId'].value_counts(normalize=True).sort_index())
+    print(valid_df['pointId'].value_counts(normalize=True).sort_index())
+
+    print(train_df['strikeNumber'].describe())
+    print(valid_df['strikeNumber'].describe())
     # 3. 預處理與標籤編碼
     preprocessor = Preprocessor(Config.CAT_FEATURES)
     preprocessor.fit(train_df)
@@ -39,7 +60,6 @@ def main(args):
     valid_df_encoded = preprocessor.transform(valid_df)
     
     # 數值特徵縮放
-    from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler()
     train_df_encoded[Config.NUM_FEATURES] = scaler.fit_transform(train_df_encoded[Config.NUM_FEATURES])
     valid_df_encoded[Config.NUM_FEATURES] = scaler.transform(valid_df_encoded[Config.NUM_FEATURES])

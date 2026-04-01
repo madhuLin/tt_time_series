@@ -24,6 +24,7 @@ class Config:
         'prev_pointId',
         'prev_spinId',
         'prev_handId',
+        'prev_positionId',
     ]
 
     NUM_FEATURES = [
@@ -36,17 +37,20 @@ class Config:
         'is_game_point_like',
         'log_strike',
         'is_late_rally',
-        'recent_atk_density'
+        'recent_atk_density',
+
+        'recent_control_density',
+        'recent_action_group_change_rate',
+        'strike_bucket'
     ]
 
     # Model Hyperparameters
     MAX_SEQ_LEN = 8
-    D_MODEL = 96
+    D_MODEL = 64
     NHEAD = 4
     NUM_LAYERS = 2
     DIM_FEEDFORWARD = 256
     DROPOUT = 0.2
-    POOLING_TYPE = 'concat' # 選項: 'last', 'mean', 'concat' 
 
     # Training Hyperparameters
     BATCH_SIZE = 256

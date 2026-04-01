@@ -5,6 +5,7 @@ BOS_POINT = 10      # pointId: 0~9
 BOS_ACTION = 19     # actionId: 0~18
 BOS_SPIN = 6        # spinId: 0~5
 BOS_HAND = 3        # handId: 0~2
+BOS_POSITION = 4    # positionId: 0~3
 
 def get_action_group(action_id: int) -> int:
     # 根據常見 ID (1-7: Attack, 8-11: Control, 12-14: Defensive, 15-18: Serve)
@@ -50,7 +51,30 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # 最近 3 拍的攻擊密度 (作為回合結束的訊號)
     df['is_atk_binary'] = (df['action_group'] == 1).astype(int)
-    df['recent_atk_density'] = groups['is_atk_binary'].transform(lambda x: x.rolling(window=3, min_periods=1).mean())
+    df['recent_atk_density'] = groups['is_atk_binary'].transform(lambda x: x.rolling(window=3, min_periods=1).mean()).fillna(0.0)
+
+    # ⭐ 新增：最近 3 拍 control 密度（強烈推薦）
+    df['is_control_binary'] = (df['action_group'] == 2).astype(int)
+    df['recent_control_density'] = groups['is_control_binary'].transform(
+        lambda x: x.shift(1).rolling(window=3, min_periods=1).mean()
+    ).fillna(0.0)
+
+
+    # ⭐ 新增：節奏變化率（非常重要）
+    df['action_group_change'] = (
+        df['action_group'] != groups['action_group'].shift(1)
+    ).astype(int)
+
+    df['recent_action_group_change_rate'] = groups['action_group_change'].transform(
+        lambda x: x.shift(1).rolling(window=3, min_periods=1).mean()
+    ).fillna(0.0)
+
+    # ⭐ 新增：rally 深度 bucket（幫助 mid / late rally 預測）
+    df['strike_bucket'] = pd.cut(
+        df['strikeNumber'],
+        bins=[0, 2, 4, 8, 100],
+        labels=[1, 2, 3, 4]
+    ).astype(int)
 
     # 5. Parity feature
     df['is_odd_stroke'] = (df['strikeNumber'] % 2 == 1).astype(int)
@@ -60,6 +84,11 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     df['prev_actionId'] = groups['actionId'].shift(1).fillna(BOS_ACTION).astype(int)
     df['prev_spinId'] = groups['spinId'].shift(1).fillna(BOS_SPIN).astype(int)
     df['prev_handId'] = groups['handId'].shift(1).fillna(BOS_HAND).astype(int)
+    df['prev_positionId'] = groups['positionId'].shift(1).fillna(BOS_POSITION).astype(int)
 
-    df = df.drop(columns=['is_atk_binary'])
+    df = df.drop(columns=[
+        'is_atk_binary',
+        'is_control_binary',
+        'action_group_change'
+    ])
     return df
