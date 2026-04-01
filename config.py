@@ -19,15 +19,16 @@ class Config:
     ]
     
     # Model Hyperparameters
-    MAX_SEQ_LEN = 15
-    D_MODEL = 64
+    MAX_SEQ_LEN = 8
+    D_MODEL = 96
     NHEAD = 4
     NUM_LAYERS = 2
     DIM_FEEDFORWARD = 256
     DROPOUT = 0.2
+    POOLING_TYPE = 'concat' # 選項: 'last', 'mean', 'concat' 
     
     # Training Hyperparameters
-    BATCH_SIZE = 64
+    BATCH_SIZE = 256
     EPOCHS = 50
     LR = 5e-4
     WEIGHT_DECAY = 1e-4

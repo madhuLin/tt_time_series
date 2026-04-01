@@ -19,8 +19,11 @@
 
 ## 目前進度
 - [x] 建立 Padding Mask 機制，避免預測偏誤。
-- [x] 加入擊球者身分特徵，AUC 提升至 0.62。
+- [x] 加入擊球者身分特徵，AUC 提升至 0.618。
 - [x] 實作多任務權重損失函數 (4:4:2)。
+- [x] 實驗 MAX_SEQ_LEN長度，不須太長設定 8， AUC 提升至 0.6233。
+- [x] 實驗 D_MODEL 64 就好太深分數下降。
+- [x] 實驗 out come pooling 分數不會下降
 
 ## 常用指令
 - 訓練：`python main.py --train_csv train.csv --epochs 50 --batch_size 64`
