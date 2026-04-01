@@ -30,6 +30,9 @@ class TableTennisDataset(Dataset):
             num_data = np.vstack([num_pad, num_data])
             mask = [True] * pad_len + [False] * curr_len
         else:
+            # 即使不補零也確保 copy 以避免 non-writable 警告
+            cat_data = cat_data.copy()
+            num_data = num_data.copy()
             mask = [False] * self.max_len
             
         return {

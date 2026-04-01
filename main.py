@@ -58,8 +58,8 @@ def main(args):
     model = TTMultiTaskModel(Config, vocab_sizes).to(Config.DEVICE)
     
     # 6. 損失函數與優化器
-    act_w = compute_class_weights(train_df_encoded, 'actionId').to(Config.DEVICE)
-    poi_w = compute_class_weights(train_df_encoded, 'pointId').to(Config.DEVICE)
+    act_w = compute_class_weights(train_df_encoded, 'actionId', vocab_sizes['actionId']).to(Config.DEVICE)
+    poi_w = compute_class_weights(train_df_encoded, 'pointId', vocab_sizes['pointId']).to(Config.DEVICE)
     
     criterion = MultiTaskLoss(Config, action_weights=act_w, point_weights=poi_w)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=Config.WEIGHT_DECAY)

@@ -2,15 +2,19 @@ import torch
 import torch.nn as nn
 import pandas as pd
 
-def compute_class_weights(df, col):
+def compute_class_weights(df, col, num_classes):
     """
-    依資料分佈計算 CrossEntropy 權重
+    依資料分佈計算 CrossEntropy 權重，確保長度等於 num_classes
     """
-    counts = df[col].value_counts().sort_index()
-    # 簡單的逆頻率權重
-    weights = 1.0 / (counts + 1)
-    weights = weights / weights.sum() * len(counts)
-    return torch.FloatTensor(weights.values)
+    counts = df[col].value_counts()
+    # 確保所有可能的類別索引都存在 (0 ~ num_classes-1)
+    full_counts = counts.reindex(range(num_classes), fill_value=0)
+    
+    # 簡單的逆頻率權重，未出現過的類別給予較大權重或中性權重
+    weights = 1.0 / (full_counts + 1.0)
+    weights = weights / weights.sum() * num_classes
+    
+    return torch.FloatTensor(weights.values.astype(float))
 
 class MultiTaskLoss(nn.Module):
     def __init__(self, config, action_weights=None, point_weights=None):
