@@ -1,0 +1,42 @@
+import torch
+from torch.utils.data import Dataset
+import numpy as np
+
+class TableTennisDataset(Dataset):
+    def __init__(self, samples, cat_cols, num_cols, max_len):
+        self.samples = samples
+        self.cat_cols = cat_cols
+        self.num_cols = num_cols
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        s = self.samples[idx]
+        seq_df = s['seq']
+        
+        cat_data = seq_df[self.cat_cols].values
+        num_data = seq_df[self.num_cols].values
+        
+        curr_len = len(cat_data)
+        pad_len = self.max_len - curr_len
+        
+        # 前補零 (Pre-padding)
+        if pad_len > 0:
+            cat_pad = np.zeros((pad_len, len(self.cat_cols)), dtype=int)
+            num_pad = np.zeros((pad_len, len(self.num_cols)), dtype=float)
+            cat_data = np.vstack([cat_pad, cat_data])
+            num_data = np.vstack([num_pad, num_data])
+            mask = [True] * pad_len + [False] * curr_len
+        else:
+            mask = [False] * self.max_len
+            
+        return {
+            'cat_features': torch.LongTensor(cat_data),
+            'num_features': torch.FloatTensor(num_data),
+            'padding_mask': torch.BoolTensor(mask),
+            'target_action': torch.tensor(s['target_action'], dtype=torch.long),
+            'target_point': torch.tensor(s['target_point'], dtype=torch.long),
+            'target_outcome': torch.tensor(s['target_outcome'], dtype=torch.float)
+        }
