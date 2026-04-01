@@ -69,3 +69,8 @@ class Config:
         'outcome': 0.2
     }
 
+    # Soft F1 Loss Settings
+    USE_SOFT_F1_ACTION = True
+    USE_SOFT_F1_POINT = True
+    LAMBDA_SOFT_F1 = 0.1
+
