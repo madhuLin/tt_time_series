@@ -5,19 +5,40 @@ class Config:
     # Data Paths
     TRAIN_CSV = "train.csv"
     OUTPUT_DIR = "./outputs"
-    
+
     # Feature Definitions
     CAT_FEATURES = [
-        'sex', 'numberGame', 'gamePlayerId', 'gamePlayerOtherId', 
-        'strikeId', 'handId', 'strengthId', 'spinId', 
-        'positionId', 'actionId', 'pointId', 'phase_id',
-        'striker_id', 'is_server'
+        'sex',
+        'numberGame',
+        'strikeId',
+        'handId',
+        'strengthId',
+        'spinId',
+        'positionId',
+        'actionId',
+        'pointId',
+        'phase_id',
+        'action_group',
+        'is_odd_stroke',
+        'prev_actionId',
+        'prev_pointId',
+        'prev_spinId',
+        'prev_handId',
     ]
+
     NUM_FEATURES = [
-        'strikeNumber', 'scoreSelf', 'scoreOther', 'scoreDiff',
-        'is_deuce', 'is_close_score', 'is_third_stroke'
+        'strikeNumber',
+        'scoreSelf',
+        'scoreOther',
+        'scoreDiff',
+        'absScoreDiff',
+        'is_close_score',
+        'is_game_point_like',
+        'log_strike',
+        'is_late_rally',
+        'recent_atk_density'
     ]
-    
+
     # Model Hyperparameters
     MAX_SEQ_LEN = 8
     D_MODEL = 96
@@ -26,11 +47,11 @@ class Config:
     DIM_FEEDFORWARD = 256
     DROPOUT = 0.2
     POOLING_TYPE = 'concat' # 選項: 'last', 'mean', 'concat' 
-    
+
     # Training Hyperparameters
     BATCH_SIZE = 256
     EPOCHS = 50
-    LR = 5e-4
+    LR = 2e-4
     WEIGHT_DECAY = 1e-4
     GRAD_CLIP = 1.0
     EARLY_STOPPING_PATIENCE = 7
@@ -43,3 +64,4 @@ class Config:
         'point': 0.4,
         'outcome': 0.2
     }
+

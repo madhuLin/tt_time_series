@@ -7,24 +7,21 @@
 3. `serverGetPoint` (該回合勝負 - 二元分類)
 
 ## 核心架構
-- **模型**: Multi-Task Transformer Encoder + MLP Heads.
-- **輸入**: 前 $n$ 拍的類別與數值特徵 (序列長度 $15$, $d_{model}=64$).
+- **模型**: Multi-Task Transformer Encoder + 2-layer MLP Heads.
+- **任務解耦**: Action/Point 使用 `last_hidden`；Outcome 使用 `concat(last, mean)`.
+- **輸入**: 前 $n$ 拍特徵 (序列長度 $8$, $d_{model}=96$, $LR=2e-4$).
 - **特徵工程**: 
-    - `striker_id`: 判斷當前是誰擊球。
-    - `is_server`: 區分發球方/接發球方。
-    - `phase_id`: 將比賽分為前、中、後段。
-- **預處理**: 
-    - `LabelEncoder` 處理類別特徵，並額外預留 `vocab_size` 作為專用 Padding Index。
-    - `StandardScaler` 處理數值特徵。
+    - **Markov**: `prev_actionId`, `prev_pointId`, `prev_spinId` (關鍵轉折訊號)。
+    - **Tactics**: `action_group`, `striker_id`, `is_server` (身分與意圖)。
+    - **Pressure**: `is_game_point`, `is_late_rally`, `scoreDiff` (戰局壓力)。
+    - **Running Stats**: 累計正反手、上下旋、戰術次數統計。
 
 ## 目前進度
-- [x] 建立 Padding Mask 機制，避免預測偏誤。
-- [x] 加入擊球者身分特徵，AUC 提升至 0.618。
-- [x] 實作多任務權重損失函數 (4:4:2)。
-- [x] 實驗 MAX_SEQ_LEN長度，不須太長設定 8， AUC 提升至 0.6233。
-- [x] 實驗 D_MODEL 64 就好太深分數下降。
-- [x] 實驗 out come pooling 分數不會下降
+- [x] 建立 Padding Mask 機制，修復 0-index 污染問題。
+- [x] **實作任務解耦與馬可夫特徵 (v1.5)**，Overall 突破至 **0.45**。
+- [x] **Point F1** 顯著提升至 **0.27** (提升 ~50%)。
+- [x] **Outcome AUC** 達到 **0.98** 的新高點。
 
 ## 常用指令
-- 訓練：`python main.py --train_csv train.csv --epochs 50 --batch_size 64`
+- 訓練：`python main.py --batch_size 256`
 - 環境：`conda activate ttt-transformer`

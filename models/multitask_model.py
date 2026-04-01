@@ -7,7 +7,7 @@ from .heads import MultiTaskHeads
 class TTMultiTaskModel(nn.Module):
     def __init__(self, config, vocab_sizes):
         super().__init__()
-        self.pooling_type = getattr(config, 'POOLING_TYPE', 'last')
+        self.pooling_type = getattr(config, 'POOLING_TYPE', 'concat')
         
         self.embedding = MultiFeatureEmbedding(
             vocab_sizes, config.CAT_FEATURES, 
@@ -19,38 +19,31 @@ class TTMultiTaskModel(nn.Module):
             config.DIM_FEEDFORWARD, config.DROPOUT
         )
         
-        # Concat 模式下，輸入維度會翻倍
-        head_in_dim = config.D_MODEL * 2 if self.pooling_type == 'concat' else config.D_MODEL
+        # 不同的 Head 輸入維度可能不同
         self.heads = MultiTaskHeads(
-            head_in_dim, config.NUM_ACTION_CLASSES, config.NUM_POINT_CLASSES
+            config.D_MODEL, # 用於 Action/Point (Last Token)
+            config.NUM_ACTION_CLASSES, 
+            config.NUM_POINT_CLASSES,
+            outcome_in_dim=config.D_MODEL * 2 if self.pooling_type == 'concat' else config.D_MODEL
         )
 
     def forward(self, cat_feats, num_feats, padding_mask):
-        # x: (B, S, D)
         x = self.embedding(cat_feats, num_feats)
         x = self.pos_encoder(x)
         output = self.encoder(x, padding_mask)
         
-        if self.pooling_type == 'last':
-            # 取最後一個 token 的 hidden state (常用於分類)
-            pooled = output[:, -1, :]
-            
-        elif self.pooling_type == 'mean':
-            # Masked Mean Pooling: 只對非 padding 部分取平均
-            # padding_mask: (B, S), True=padded
-            mask = (~padding_mask).float().unsqueeze(-1) # (B, S, 1)
-            sum_hidden = (output * mask).sum(dim=1)
-            count = mask.sum(dim=1).clamp(min=1)
-            pooled = sum_hidden / count
-            
-        elif self.pooling_type == 'concat':
-            # Last Token + Masked Mean
-            last = output[:, -1, :]
+        # 1. 取最後一拍用於 Action/Point 預測
+        last_hidden = output[:, -1, :]
+        
+        # 2. 計算 Outcome 特徵
+        if self.pooling_type == 'concat':
             mask = (~padding_mask).float().unsqueeze(-1)
-            mean = (output * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
-            pooled = torch.cat([last, mean], dim=-1) # (B, D*2)
-            
+            mean_hidden = (output * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
+            outcome_hidden = torch.cat([last_hidden, mean_hidden], dim=-1)
+        elif self.pooling_type == 'mean':
+            mask = (~padding_mask).float().unsqueeze(-1)
+            outcome_hidden = (output * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
         else:
-            pooled = output[:, -1, :]
+            outcome_hidden = last_hidden
             
-        return self.heads(pooled)
+        return self.heads(last_hidden, outcome_hidden)
